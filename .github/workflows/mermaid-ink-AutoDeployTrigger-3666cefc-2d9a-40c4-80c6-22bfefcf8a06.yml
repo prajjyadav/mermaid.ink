@@ -2,16 +2,17 @@ name: Trigger auto deployment for mermaid-ink
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
     paths:
       - '**'
-      - '.github/workflows/mermaid-ink-AutoDeployTrigger-3666cefc-2d9a-40c4-80c6-22bfefcf8a06.yml'
+      - '.github/workflows/mermaid-ink-AutoDeployTrigger.yml'
   workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
+    permissions: 
       id-token: write
       contents: read
 
@@ -26,20 +27,14 @@ jobs:
           tenant-id: ${{ secrets.MERMAIDINK_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.MERMAIDINK_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Set image name
-        id: set-image
-        run: |
-          echo "IMAGE_NAME=${{ secrets.MERMAIDINK_REGISTRY_URL }}/mermaid-ink:${{ github.sha }}" >> $GITHUB_ENV
-
-      - name: Build and push image to registry
-        run: |
-          echo "${{ secrets.MERMAIDINK_REGISTRY_PASSWORD }}" | docker login ${{ secrets.MERMAIDINK_REGISTRY_URL }} -u ${{ secrets.MERMAIDINK_REGISTRY_USERNAME }} --password-stdin
-          docker build -t $IMAGE_NAME .
-          docker push $IMAGE_NAME
-
-      - name: Deploy to Azure Container Apps
+      - name: Build and push container image to ACR, then deploy to Container App
         uses: azure/container-apps-deploy-action@v2
         with:
+          appSourcePath: ${{ github.workspace }}
+          dockerfilePath: ./Dockerfile
+          registryUrl: flowgifacr.azurecr.io
+          registryUsername: ${{ secrets.MERMAIDINK_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.MERMAIDINK_REGISTRY_PASSWORD }}
           containerAppName: mermaid-ink
           resourceGroup: flowgif-rg
-          imageToDeploy: ${{ env.IMAGE_NAME }}
+          imageToBuild: flowgifacr.azurecr.io/mermaid-ink:${{ github.sha }}
