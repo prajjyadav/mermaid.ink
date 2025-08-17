@@ -38,3 +38,6 @@ jobs:
           containerAppName: mermaid-ink
           resourceGroup: flowgif-rg
           imageToBuild: flowgifacr.azurecr.io/mermaid-ink:${{ github.sha }}
+          ingressTargetPort: 3000
+          environmentVariables: |
+            CI=true
